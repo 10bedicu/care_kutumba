@@ -1,18 +1,9 @@
 from django.conf import settings
-from django.shortcuts import HttpResponse
-from django.urls import path
 from rest_framework.routers import DefaultRouter, SimpleRouter
 
-from care_kutumba.api.viewsets import BaseViewSet
-
-
-def healthy(request):
-    return HttpResponse("OK")
-
+from care_kutumba.api.viewsets import BeneficiaryViewSet
 
 router = DefaultRouter() if settings.DEBUG else SimpleRouter()
-router.register(r"", BaseViewSet, basename="care_kutumba-demo")
+router.register(r"beneficiary", BeneficiaryViewSet, basename="kutumba-beneficiary")
 
-urlpatterns = [
-    path("health", healthy),
-] + router.urls
+urlpatterns = router.urls

@@ -39,7 +39,8 @@ class PluginSettings:  # pragma: no cover
         self.import_strings = import_strings or set()
         self.required_settings = required_settings or set()
         self._cached_attrs = set()
-        self.validate()
+        # Note: Validation is done lazily when settings are accessed
+        # to avoid import-time errors when environment is not fully configured
 
     def __getattr__(self, attr) -> Any:
         if attr not in self.defaults:
@@ -67,9 +68,7 @@ class PluginSettings:  # pragma: no cover
     @property
     def user_settings(self) -> dict:
         if not hasattr(self, "_user_settings"):
-            self._user_settings = getattr(settings, "PLUGIN_CONFIGS", {}).get(
-                self.plugin_name, {}
-            )
+            self._user_settings = getattr(settings, "PLUGIN_CONFIGS", {}).get(self.plugin_name, {})
         return self._user_settings
 
     def validate(self) -> None:
@@ -79,12 +78,20 @@ class PluginSettings:  # pragma: no cover
 
         the base implementation checks if all the required settings are truthy.
         """
+        missing = []
         for setting in self.required_settings:
-            if not getattr(self, setting):
-                raise ImproperlyConfigured(
-                    f'The "{setting}" setting is required. '
-                    f'Please set the "{setting}" in the environment or the {PLUGIN_NAME} plugin config.'
-                )
+            try:
+                val = getattr(self, setting)
+                if not val:
+                    missing.append(setting)
+            except (AttributeError, ImproperlyConfigured):
+                missing.append(setting)
+
+        if missing:
+            raise ImproperlyConfigured(
+                f'The following settings are required for {PLUGIN_NAME}: {", ".join(missing)}. '
+                f'Please set them in environment variables or plugin config.'
+            )
 
     def reload(self) -> None:
         """
@@ -98,16 +105,24 @@ class PluginSettings:  # pragma: no cover
 
 
 REQUIRED_SETTINGS = {
-    "CARE_KUTUMBA_CONFIG",
+    "KUTUMBA_CLIENT_CODE",
+    "KUTUMBA_HMAC_KEY",
+    "KUTUMBA_AES_KEY",
+    "KUTUMBA_AES_IV",
 }
 
 DEFAULTS = {
-    "CARE_KUTUMBA_OPTIONAL_CONFIG": "test",
+    # API Configuration
+    "KUTUMBA_API_URL": "",
+    "KUTUMBA_CLIENT_CODE": "",
+    "KUTUMBA_HMAC_KEY": "",
+    "KUTUMBA_AES_KEY": "",
+    "KUTUMBA_AES_IV": "",
+    "KUTUMBA_API_VERSION": "1.0",
+    "KUTUMBA_REQUEST_TIMEOUT": 30,
 }
 
-plugin_settings = PluginSettings(
-    PLUGIN_NAME, defaults=DEFAULTS, required_settings=REQUIRED_SETTINGS
-)
+plugin_settings = PluginSettings(PLUGIN_NAME, defaults=DEFAULTS, required_settings=REQUIRED_SETTINGS)
 
 
 @receiver(setting_changed)
