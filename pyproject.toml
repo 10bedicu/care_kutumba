@@ -1,0 +1,48 @@
+[project]
+name = "care_kutumba"
+version = "0.1.0"
+description = "Plugin for integration of the kutumba API with Care."
+readme = "README.md"
+authors = [
+  {name = "Care Kutumba Integration", email = "support@ohc.network"}
+]
+maintainers = [
+  {name = "Care Kutumba Integration", email = "support@ohc.network"}
+]
+classifiers = [
+    # TODO
+]
+license = {text = "MIT"}
+dependencies = [
+    "django",
+    "celery",
+    "djangorestframework",
+]
+requires-python = ">= 3.10"
+
+[project.optional-dependencies]
+test = [
+    "ruff",  # linting
+]
+
+[project.urls]
+bugs = "https://github.com/yash-learner/care_kutumba/issues"
+changelog = "https://github.com/yash-learner/care_kutumba/blob/master/changelog.md"
+homepage = "https://github.com/yash-learner/care_kutumba"
+
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+
+[tool.uv]
+package = true
