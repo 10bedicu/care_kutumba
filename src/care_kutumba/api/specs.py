@@ -34,15 +34,15 @@ class BeneficiaryMember(BaseModel):
     education_id: str | None = None
     disability_applicant_no: str | None = None
     name: str
-    date_of_birth: str
-    gender: str
-    address: str
+    date_of_birth: str | None = None
+    gender: str | None = None
+    address: str | None = None
     pincode: str | None = None
     rc_number: str
-    rc_type: str
-    relation_name: str
-    mobile_no: str = ""
-    kutumba_id_status: str
+    rc_type: str | None = None
+    relation_name: str | None = None
+    mobile_no: str | None = None
+    kutumba_id_status: str | None = None
     rch_id: str | None = None
 
     @classmethod
@@ -54,15 +54,15 @@ class BeneficiaryMember(BaseModel):
             education_id=data.get("MBR_EDUCATION_ID"),
             disability_applicant_no=data.get("MBR_Disability_Applicant_No"),
             name=data.get("MEMBER_NAME_ENG", ""),
-            date_of_birth=data.get("MBR_DOB", ""),
-            gender=data.get("MBR_GENDER", ""),
-            address=data.get("MBR_ADDRESS", ""),
+            date_of_birth=data.get("MBR_DOB"),
+            gender=data.get("MBR_GENDER"),
+            address=data.get("MBR_ADDRESS"),
             pincode=data.get("MBR_PINCODE"),
             rc_number=data.get("RC_NUMBER", ""),
-            rc_type=data.get("RC_TYPE", ""),
-            relation_name=data.get("RELATION_NAME", ""),
-            mobile_no=data.get("MBR_MOBILE_NO", ""),
-            kutumba_id_status=data.get("Kutumba_ID_status", ""),
+            rc_type=data.get("RC_TYPE"),
+            relation_name=data.get("RELATION_NAME"),
+            mobile_no=data.get("MBR_MOBILE_NO"),
+            kutumba_id_status=data.get("Kutumba_ID_status"),
             rch_id=data.get("RCH_ID"),
         )
 

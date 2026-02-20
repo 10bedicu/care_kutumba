@@ -97,5 +97,5 @@ def generate_request_id() -> str:
     import random
     import time
 
-    # 7 digits from timestamp + 3 random digits = 10 digits total
-    return f"{int(time.time()) % 10**7}{random.randint(100, 999)}"
+    # 7 digits from timestamp (zero-padded) + 3 random digits = 10 digits total
+    return f"{int(time.time()) % 10**7:07d}{random.randint(100, 999)}"
