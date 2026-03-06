@@ -1,8 +1,11 @@
 import logging
 
+from care.security.authorization.base import AuthorizationController
 from pydantic import ValidationError
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
@@ -13,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 class BeneficiaryViewSet(GenericViewSet):
+    permission_classes = (IsAuthenticated,)
     """ViewSet for Kutumba beneficiary operations."""
 
     @action(detail=False, methods=["post"])
@@ -27,6 +31,9 @@ class BeneficiaryViewSet(GenericViewSet):
 
         Returns family member data from Karnataka Kutumba system.
         """
+        if not AuthorizationController.call("can_create_patient", self.request.user):
+            raise PermissionDenied("You do not have permission to look up Kutumba beneficiaries")
+
         try:
             lookup_request = BeneficiaryLookupRequest(**request.data)
         except ValidationError as e:
