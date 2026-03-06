@@ -16,7 +16,6 @@ class KutumbaRequest:
     def __init__(self, base_url: str = None):
         self.url = base_url or settings.KUTUMBA_API_URL
         self.timeout = settings.KUTUMBA_REQUEST_TIMEOUT
-        logger.info(f"Initialized KutumbaRequest with base_url: {self.url}")
 
     def headers(self, additional_headers: dict = None) -> dict:
         """Build request headers."""
@@ -39,9 +38,6 @@ class KutumbaRequest:
         """
         payload = json.dumps(data)
         request_headers = self.headers(headers)
-
-        logger.info(f"Making POST request to: {self.url}")
-        logger.debug(f"Request payload keys: {list(data.keys()) if data else []}")
 
         try:
             response = requests.post(

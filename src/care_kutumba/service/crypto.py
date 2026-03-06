@@ -33,7 +33,7 @@ def generate_hmac(client_code: str, rc_number: str, hmac_key: str) -> str:
         Base64-encoded HMAC-SHA256 digest
     """
     message = f"{client_code}__{rc_number}__"
-    logger.debug(f"Generating HMAC for message pattern: {client_code}__****__")
+    logger.debug("Generating HMAC for message pattern")
 
     digest = hmac.new(
         hmac_key.encode("utf-8"),

@@ -38,7 +38,7 @@ class KutumbaService:
         Returns:
             BeneficiaryLookupResponse containing family member data or error info
         """
-        logger.info(f"Looking up beneficiary data for RC: {rc_number[:4]}****")
+        logger.info("Looking up beneficiary data for RC")
 
         # Generate HMAC for authentication
         hashed_mac = generate_hmac(self.client_code, rc_number, self.hmac_key)
@@ -97,8 +97,6 @@ class KutumbaService:
 
             # Parse members using Pydantic specs
             members = [BeneficiaryMember.from_api_response(member_data) for member_data in result_list]
-
-            logger.info(f"Successfully retrieved {len(members)} family members")
 
             return BeneficiaryLookupResponse(
                 success=True,
