@@ -1,7 +1,6 @@
+from care.emr.models.patient import Patient
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
-from care.emr.models.patient import Patient
 
 
 @receiver(post_save, sender=Patient)
