@@ -81,19 +81,14 @@ class KutumbaService:
                     error=f"Kutumba API error: {status_text}",
                 )
 
-            # Check if response is encrypted
-            if "EncResultData" in response_data:
-                logger.debug("Response is encrypted, decrypting...")
-                decrypted_data = decrypt_response(
-                    response_data["EncResultData"],
-                    self.aes_key,
-                    self.aes_iv,
-                )
-                # The decrypted data should have ResultDataList
-                result_list = decrypted_data.get("ResultDataList", [])
-            else:
-                # Response might be unencrypted (for testing environments)
-                result_list = response_data.get("ResultDataList", [])
+            # Decrypt the encrypted result payload
+            logger.debug("Decrypting response...")
+            decrypted_data = decrypt_response(
+                response_data["EncResultData"],
+                self.aes_key,
+                self.aes_iv,
+            )
+            result_list = decrypted_data.get("ResultDataList", [])
 
             # Parse members using Pydantic specs
             members = [BeneficiaryMember.from_api_response(member_data) for member_data in result_list]
@@ -102,7 +97,7 @@ class KutumbaService:
                 success=True,
                 status_code=status_code,
                 status_text=status_text,
-                response_id=response_data.get("Response_ID"),
+                response_id=decrypted_data.get("Response_ID"),
                 request_id=request_id,
                 members=members,
             )

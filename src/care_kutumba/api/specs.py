@@ -3,7 +3,10 @@
 Following Care's pattern of using Pydantic models for request/response validation.
 """
 
-from pydantic import BaseModel, Field, field_validator
+from typing import Literal
+from uuid import UUID
+
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class BeneficiaryLookupRequest(BaseModel):
@@ -75,5 +78,21 @@ class BeneficiaryLookupResponse(BaseModel):
     status_text: str
     response_id: str | None = None
     request_id: str | None = None
+    request_log_external_id: str | None = None
     members: list[BeneficiaryMember] = []
     error: str | None = None
+
+
+class PatientLinkRequest(BaseModel):
+    """Request spec for linking a patient to a Kutumba lookup result."""
+
+    request_log_external_id: UUID
+    selected_member_index: int = Field(..., ge=0)
+    patient_external_id: UUID | None = None
+    action: Literal["create", "update"]
+
+    @model_validator(mode="after")
+    def _patient_required_for_update(self) -> "PatientLinkRequest":
+        if self.action == "update" and self.patient_external_id is None:
+            raise ValueError("patient_external_id is required when action is 'update'")
+        return self
