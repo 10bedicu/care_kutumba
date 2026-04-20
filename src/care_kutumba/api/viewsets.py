@@ -6,7 +6,6 @@ from pydantic import ValidationError
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.mixins import CreateModelMixin
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
@@ -71,7 +70,7 @@ class BeneficiaryViewSet(GenericViewSet):
             return Response(response_data, status=status.HTTP_502_BAD_GATEWAY)
 
 
-class PatientLinkViewSet(CreateModelMixin, GenericViewSet):
+class PatientLinkViewSet(GenericViewSet):
     """ViewSet for recording links between Kutumba lookups and patient actions."""
 
     permission_classes = (IsAuthenticated,)
