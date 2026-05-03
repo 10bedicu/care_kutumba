@@ -77,3 +77,8 @@ class BeneficiaryLookupResponse(BaseModel):
     request_id: str | None = None
     members: list[BeneficiaryMember] = []
     error: str | None = None
+    # True only when the upstream Kutumba API was unreachable, returned a
+    # malformed response, or otherwise failed in a way the caller can't fix.
+    # A valid upstream response that simply has no matches (e.g. status_code
+    # -19 "No data found for the given criteria.") is NOT an upstream error.
+    upstream_error: bool = False
