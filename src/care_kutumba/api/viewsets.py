@@ -41,7 +41,7 @@ class BeneficiaryViewSet(GenericViewSet):
             return Response(
                 {
                     "success": False,
-                    "errors": e.errors(include_context=False, include_url=False),
+                    "errors": e.errors(include_context=False, include_url=False, include_input=False),
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
