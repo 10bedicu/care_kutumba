@@ -13,6 +13,18 @@ from care_kutumba.settings import plugin_settings as settings
 
 logger = logging.getLogger(__name__)
 
+# Kutumba `StatusCode` values we recognise.
+# 0  = success
+# -3 = invalid HMAC (admin-actionable: wrong client_code / hmac_key / clock skew)
+# -19 = no data found for the given criteria (user-visible empty result)
+NO_DATA_STATUS_CODE = -19
+INVALID_HMAC_STATUS_CODE = -3
+
+# Non-zero status codes that represent a *valid* upstream response that the
+# end user can act on (typically by trying different input). Anything not in
+# this set is treated as an integration / upstream failure the user can't fix.
+USER_VISIBLE_EMPTY_CODES = {NO_DATA_STATUS_CODE}
+
 
 class KutumbaService:
     """Service for interacting with Kutumba API."""
@@ -70,7 +82,17 @@ class KutumbaService:
             status_text = response_data.get("StatusText", "Unknown")
 
             if status_code != 0:
-                logger.warning(f"Kutumba API returned error: {status_code} - {status_text}")
+                upstream_error = status_code not in USER_VISIBLE_EMPTY_CODES
+                if status_code == INVALID_HMAC_STATUS_CODE:
+                    # Admin-actionable: log loudly so it surfaces in monitoring.
+                    logger.error(
+                        "Kutumba rejected our HMAC \u2014 check KUTUMBA_HMAC_KEY / "
+                        "KUTUMBA_CLIENT_CODE. request_id=%s response_id=%s",
+                        request_id,
+                        response_data.get("Response_ID"),
+                    )
+                else:
+                    logger.warning("Kutumba API returned error: %s - %s", status_code, status_text)
                 return BeneficiaryLookupResponse(
                     success=False,
                     status_code=status_code,
@@ -79,6 +101,7 @@ class KutumbaService:
                     request_id=request_id,
                     members=[],
                     error=f"Kutumba API error: {status_text}",
+                    upstream_error=upstream_error,
                 )
 
             # Decrypt the encrypted result payload
@@ -112,4 +135,5 @@ class KutumbaService:
                 request_id=request_id,
                 members=[],
                 error=str(e),
+                upstream_error=True,
             )

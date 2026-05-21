@@ -1,6 +1,5 @@
 import logging
 
-from care.emr.models.patient import Patient
 from care.security.authorization.base import AuthorizationController
 from pydantic import ValidationError
 from rest_framework import status
@@ -10,8 +9,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.viewsets import GenericViewSet
 
-from care_kutumba.api.specs import BeneficiaryLookupRequest, PatientLinkRequest
-from care_kutumba.models import KutumbaPatientLink, KutumbaRequestLog
+from care_kutumba.api.specs import BeneficiaryLookupRequest
+from care_kutumba.models import KutumbaRequestLog
 from care_kutumba.service.kutumba import KutumbaService
 
 logger = logging.getLogger(__name__)
@@ -40,7 +39,10 @@ class BeneficiaryViewSet(GenericViewSet):
             lookup_request = BeneficiaryLookupRequest(**request.data)
         except ValidationError as e:
             return Response(
-                {"success": False, "errors": e.errors()},
+                {
+                    "success": False,
+                    "errors": e.errors(include_context=False, include_url=False, include_input=False),
+                },
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -64,88 +66,15 @@ class BeneficiaryViewSet(GenericViewSet):
         response_data = result.model_dump()
         response_data["request_log_external_id"] = str(request_log.external_id)
 
-        if result.success:
-            return Response(response_data, status=status.HTTP_200_OK)
-        else:
-            return Response(response_data, status=status.HTTP_502_BAD_GATEWAY)
-
-
-class PatientLinkViewSet(GenericViewSet):
-    """ViewSet for recording links between Kutumba lookups and patient actions."""
-
-    permission_classes = (IsAuthenticated,)
-    queryset = KutumbaPatientLink.objects.all()
-
-    def create(self, request, *args, **kwargs):
-        """
-        Record that a Kutumba lookup result was used to create or update a patient.
-
-        Request body:
-        {
-            "request_log_external_id": "<uuid>",
-            "selected_member_index": 0,
-            "patient_external_id": "<uuid>" | null,
-            "action": "create" | "update"
-        }
-        """
-        if not AuthorizationController.call("can_create_patient", request.user):
-            raise PermissionDenied("You do not have permission to record Kutumba patient links")
-
-        try:
-            link_request = PatientLinkRequest(**request.data)
-        except ValidationError as e:
-            return Response(
-                {"success": False, "errors": e.errors()},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        try:
-            request_log = KutumbaRequestLog.objects.get(external_id=link_request.request_log_external_id)
-        except KutumbaRequestLog.DoesNotExist:
-            return Response(
-                {"success": False, "error": "Kutumba request log not found"},
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        if link_request.selected_member_index >= len(request_log.members):
-            return Response(
-                {
-                    "success": False,
-                    "error": "selected_member_index is out of range for this request log",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        patient = None
-        if link_request.patient_external_id is not None:
-            try:
-                patient = Patient.objects.get(external_id=link_request.patient_external_id)
-            except Patient.DoesNotExist:
-                return Response(
-                    {"success": False, "error": "Patient not found"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
-
-        selected_member = request_log.members[link_request.selected_member_index]
-
-        link = KutumbaPatientLink.objects.create(
-            request_log=request_log,
-            selected_member_index=link_request.selected_member_index,
-            selected_member_data=selected_member,
-            rc_number=request_log.rc_number,
-            patient=patient,
-            action=link_request.action,
-            performed_by=request.user,
-        )
-
-        return Response(
-            {
-                "success": True,
-                "external_id": str(link.external_id),
+        if result.upstream_error:
+            # Don't echo upstream's diagnostic verbatim \u2014 it can leak
+            # integration details (auth scheme, client codes, etc.) and is
+            # not actionable by the end user. Surface a generic message and
+            # the log id so support can correlate.
+            safe_payload = {
+                "success": False,
                 "request_log_external_id": str(request_log.external_id),
-                "selected_member_index": link.selected_member_index,
-                "patient_external_id": (str(patient.external_id) if patient is not None else None),
-                "action": link.action,
-            },
-            status=status.HTTP_201_CREATED,
-        )
+                "error": ("Kutumba lookup is currently unavailable. Please try again later or contact support."),
+            }
+            return Response(safe_payload, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        return Response(response_data, status=status.HTTP_200_OK)
